@@ -237,57 +237,10 @@ class EcosystemWorld {
     }
     
     setupEventListeners() {
-        // Mouse rotation
-        this.canvas.addEventListener('mousedown', (e) => {
-            this.isDragging = true;
-            this.lastMouse = { x: e.clientX, y: e.clientY };
-        });
-        
-        window.addEventListener('mousemove', (e) => {
-            if (!this.isDragging) return;
-            
-            const dx = e.clientX - this.lastMouse.x;
-            const dy = e.clientY - this.lastMouse.y;
-            
-            this.targetRotation.y += dx * 0.005;
-            this.targetRotation.x = Math.max(0.3, Math.min(1.2, this.targetRotation.x + dy * 0.005));
-            
-            this.lastMouse = { x: e.clientX, y: e.clientY };
-        });
-        
-        window.addEventListener('mouseup', () => {
-            this.isDragging = false;
-        });
-        
-        // Zoom
+        // Zoom only (scroll wheel)
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             this.targetZoom = Math.max(0.5, Math.min(2.5, this.targetZoom - e.deltaY * 0.001));
-        });
-        
-        // Touch support
-        this.canvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                this.isDragging = true;
-                this.lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
-        });
-        
-        this.canvas.addEventListener('touchmove', (e) => {
-            if (!this.isDragging || e.touches.length !== 1) return;
-            e.preventDefault();
-            
-            const dx = e.touches[0].clientX - this.lastMouse.x;
-            const dy = e.touches[0].clientY - this.lastMouse.y;
-            
-            this.targetRotation.y += dx * 0.005;
-            this.targetRotation.x = Math.max(0.3, Math.min(1.2, this.targetRotation.x + dy * 0.005));
-            
-            this.lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        });
-        
-        this.canvas.addEventListener('touchend', () => {
-            this.isDragging = false;
         });
         
         window.addEventListener('resize', () => this.resize());
