@@ -1,20 +1,21 @@
 :root {
-    --bg-cream: #e8e4dc;
-    --bg-light: #f0ece4;
-    --bg-panel: #f5f2ec;
+    --bg-cream: #faf9f6;
+    --bg-light: #f5f4f1;
+    --bg-panel: #ffffff;
     
     --accent-orange: #e87f38;
     --accent-orange-light: #f4a460;
     
-    --gray-dark: #2a2a2a;
-    --gray-mid: #6b6b6b;
-    --gray-light: #a0a0a0;
-    --gray-border: #c8c4bc;
+    --gray-dark: #1a1a2e;
+    --gray-mid: #5a5a6e;
+    --gray-light: #9a9aae;
+    --gray-border: #d8d8e0;
     
-    --species-flora: #4a7c4e;
-    --species-herbivore: #4a6b8a;
-    --species-carnivore: #8a4a4a;
-    --species-decomposer: #8a7a4a;
+    /* Species colors - vibrant like the image */
+    --species-flora: #f5a623;      /* Yellow/Orange */
+    --species-herbivore: #1a4b8c;  /* Dark Blue */
+    --species-carnivore: #c41e3a;  /* Red */
+    --species-decomposer: #f5a623; /* Yellow */
     
     --font-mono: 'Space Mono', monospace;
     --font-sans: 'IBM Plex Sans', sans-serif;
@@ -60,7 +61,7 @@ body {
     font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.15em;
-    color: var(--gray-dark);
+    color: white;
 }
 
 /* Main Content */
@@ -260,11 +261,11 @@ body {
 }
 
 .atmo-fill.o2 {
-    background: linear-gradient(90deg, #5ba3c0, #7ec8e3);
+    background: #1a4b8c;
 }
 
 .atmo-fill.co2 {
-    background: linear-gradient(90deg, #9b7bb8, #c4a6db);
+    background: #c41e3a;
 }
 
 .atmo-value {
@@ -296,23 +297,24 @@ body {
 .species-icon {
     width: 10px;
     height: 10px;
-    border-radius: 2px;
+    border-radius: 1px;
 }
 
 .species-icon.flora {
-    background: var(--species-flora);
+    background: #f5a623;
 }
 
 .species-icon.herbivore {
-    background: var(--species-herbivore);
+    background: #1a4b8c;
 }
 
 .species-icon.carnivore {
-    background: var(--species-carnivore);
+    background: #c41e3a;
 }
 
 .species-icon.decomposer {
-    background: var(--species-decomposer);
+    background: #f5a623;
+    opacity: 0.6;
 }
 
 .species-name {
@@ -387,9 +389,10 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    background: white;
 }
 
-.canvas-container canvas {
+#world {
     display: block;
 }
 
