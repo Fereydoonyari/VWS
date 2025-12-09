@@ -1,5 +1,5 @@
-// Voxel Ecosystem - 2D Grid Simulator
-// =====================================
+// Voxel Ecosystem - 2D Grid Simulator with Organic Tendrils
+// ==========================================================
 
 const EntityType = {
     EMPTY: 0,
@@ -18,6 +18,11 @@ class Entity {
         this.energy = this.getInitialEnergy();
         this.age = 0;
         this.maxAge = this.getMaxAge();
+        // Trail history for drawing tendrils
+        this.trail = [];
+        this.maxTrail = 15 + Math.floor(Math.random() * 10);
+        // Reproduction tracking
+        this.cyclesSinceReproduction = 0;
     }
     
     getInitialEnergy() {
@@ -41,6 +46,13 @@ class Entity {
             default: return 0;
         }
     }
+    
+    addToTrail(x, y) {
+        this.trail.push({ x, y });
+        if (this.trail.length > this.maxTrail) {
+            this.trail.shift();
+        }
+    }
 }
 
 class EcosystemWorld {
@@ -49,15 +61,15 @@ class EcosystemWorld {
         this.ctx = canvas.getContext('2d');
         
         // World settings
-        this.gridSize = 40;
-        this.cellSize = 16;
+        this.gridSize = 50;
+        this.cellSize = 12;
         
         // Simulation
         this.grid = [];
         this.generation = 0;
         this.isRunning = false;
         this.lastUpdate = 0;
-        this.updateInterval = 100;
+        this.updateInterval = 80;
         
         // Atmosphere
         this.atmosphere = {
@@ -77,19 +89,39 @@ class EcosystemWorld {
         
         // Densities
         this.densities = {
-            plants: 0.12,
-            herbivores: 0.04,
-            carnivores: 0.02,
+            plants: 0.10,
+            herbivores: 0.03,
+            carnivores: 0.015,
             decomposers: 0.02
         };
         
-        // Colors - vibrant like the reference image
+        // Vibrant colors like the reference
         this.colors = {
-            [EntityType.PLANT]: '#f5a623',      // Yellow/Orange
-            [EntityType.HERBIVORE]: '#1a4b8c',  // Dark Blue
-            [EntityType.CARNIVORE]: '#c41e3a',  // Red
-            [EntityType.DECOMPOSER]: '#f5a623', // Yellow (lighter)
-            [EntityType.DEAD_MATTER]: '#888888' // Gray
+            [EntityType.PLANT]: {
+                fill: '#2d8f4e',      // Green
+                light: '#4ade80',
+                line: '#65a30d'
+            },
+            [EntityType.HERBIVORE]: {
+                fill: '#1e5aab',      // Blue
+                light: '#3b82f6',
+                line: '#60a5fa'
+            },
+            [EntityType.CARNIVORE]: {
+                fill: '#c91c1c',      // Red
+                light: '#ef4444',
+                line: '#f87171'
+            },
+            [EntityType.DECOMPOSER]: {
+                fill: '#d4a012',      // Gold/Yellow
+                light: '#fbbf24',
+                line: '#fcd34d'
+            },
+            [EntityType.DEAD_MATTER]: {
+                fill: '#4a4a4a',
+                light: '#737373',
+                line: '#525252'
+            }
         };
         
         this.init();
@@ -131,59 +163,50 @@ class EcosystemWorld {
         
         const totalCells = this.gridSize * this.gridSize;
         
-        // Plants - clustered in center with spread
-        const centerX = this.gridSize / 2;
-        const centerY = this.gridSize / 2;
-        const maxRadius = this.gridSize * 0.45;
+        // Create multiple seed points for colonies
+        const numSeeds = 5 + Math.floor(Math.random() * 5);
+        const seeds = [];
+        for (let i = 0; i < numSeeds; i++) {
+            seeds.push({
+                x: Math.floor(Math.random() * this.gridSize),
+                y: Math.floor(Math.random() * this.gridSize),
+                type: [EntityType.PLANT, EntityType.PLANT, EntityType.HERBIVORE, EntityType.CARNIVORE][Math.floor(Math.random() * 4)]
+            });
+        }
         
-        for (let y = 0; y < this.gridSize; y++) {
-            for (let x = 0; x < this.gridSize; x++) {
-                const dx = x - centerX;
-                const dy = y - centerY;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                // Higher density in center
-                const densityMod = Math.max(0, 1 - (dist / maxRadius) * 0.7);
-                
-                if (Math.random() < this.densities.plants * densityMod * 2) {
-                    this.grid[y][x] = new Entity(EntityType.PLANT, x, y);
+        // Grow colonies from seeds
+        for (const seed of seeds) {
+            const radius = 5 + Math.floor(Math.random() * 8);
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const x = seed.x + dx;
+                    const y = seed.y + dy;
+                    if (x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) continue;
+                    
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const prob = Math.max(0, 1 - dist / radius) * 0.6;
+                    
+                    if (Math.random() < prob && !this.grid[y][x]) {
+                        this.grid[y][x] = new Entity(seed.type, x, y);
+                    }
                 }
             }
         }
         
-        // Herbivores - scattered
-        let herbivoreCount = Math.floor(totalCells * this.densities.herbivores);
-        while (herbivoreCount > 0) {
-            const x = Math.floor(Math.random() * this.gridSize);
-            const y = Math.floor(Math.random() * this.gridSize);
-            
-            if (!this.grid[y][x]) {
-                this.grid[y][x] = new Entity(EntityType.HERBIVORE, x, y);
-                herbivoreCount--;
-            }
-        }
-        
-        // Carnivores
-        let carnivoreCount = Math.floor(totalCells * this.densities.carnivores);
-        while (carnivoreCount > 0) {
-            const x = Math.floor(Math.random() * this.gridSize);
-            const y = Math.floor(Math.random() * this.gridSize);
-            
-            if (!this.grid[y][x]) {
-                this.grid[y][x] = new Entity(EntityType.CARNIVORE, x, y);
-                carnivoreCount--;
-            }
-        }
-        
-        // Decomposers
-        let decomposerCount = Math.floor(totalCells * this.densities.decomposers);
-        while (decomposerCount > 0) {
-            const x = Math.floor(Math.random() * this.gridSize);
-            const y = Math.floor(Math.random() * this.gridSize);
-            
-            if (!this.grid[y][x]) {
-                this.grid[y][x] = new Entity(EntityType.DECOMPOSER, x, y);
-                decomposerCount--;
+        // Add scattered entities
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                if (this.grid[y][x]) continue;
+                
+                if (Math.random() < this.densities.plants * 0.5) {
+                    this.grid[y][x] = new Entity(EntityType.PLANT, x, y);
+                } else if (Math.random() < this.densities.herbivores * 0.3) {
+                    this.grid[y][x] = new Entity(EntityType.HERBIVORE, x, y);
+                } else if (Math.random() < this.densities.carnivores * 0.3) {
+                    this.grid[y][x] = new Entity(EntityType.CARNIVORE, x, y);
+                } else if (Math.random() < this.densities.decomposers * 0.3) {
+                    this.grid[y][x] = new Entity(EntityType.DECOMPOSER, x, y);
+                }
             }
         }
         
@@ -192,20 +215,16 @@ class EcosystemWorld {
     
     getNeighbors(x, y) {
         const neighbors = [];
-        
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 if (dx === 0 && dy === 0) continue;
-                
                 const nx = x + dx;
                 const ny = y + dy;
-                
                 if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize) {
                     neighbors.push({ x: nx, y: ny, entity: this.grid[ny][nx] });
                 }
             }
         }
-        
         return neighbors;
     }
     
@@ -217,6 +236,35 @@ class EcosystemWorld {
     
     findNeighborOfType(x, y, type) {
         const neighbors = this.getNeighbors(x, y).filter(n => n.entity && n.entity.type === type);
+        if (neighbors.length === 0) return null;
+        return neighbors[Math.floor(Math.random() * neighbors.length)];
+    }
+    
+    // Check if there's another entity of the same type within a radius
+    hasNearbyOfType(x, y, type, radius = 3) {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize) {
+                    const entity = this.grid[ny][nx];
+                    if (entity && entity.type === type) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    
+    // Check if there's an adjacent mate (for animals)
+    findMate(x, y, type) {
+        const neighbors = this.getNeighbors(x, y).filter(n => 
+            n.entity && 
+            n.entity.type === type && 
+            n.entity.energy > 50  // Mate must have enough energy
+        );
         if (neighbors.length === 0) return null;
         return neighbors[Math.floor(Math.random() * neighbors.length)];
     }
@@ -233,18 +281,31 @@ class EcosystemWorld {
         
         entity.energy -= 0.3;
         entity.age++;
+        entity.cyclesSinceReproduction++;
         
-        if (entity.energy > 80 && Math.random() < 0.06) {
+        // Plants grow roots (trails)
+        if (Math.random() < 0.1) {
+            entity.addToTrail(x + (Math.random() - 0.5) * 2, y + (Math.random() - 0.5) * 2);
+        }
+        
+        // Plant reproduction: every 4 cycles, needs another plant within radius 3
+        if (entity.energy > 80 && 
+            entity.cyclesSinceReproduction >= 4 && 
+            this.hasNearbyOfType(x, y, EntityType.PLANT, 3)) {
             const empty = this.findEmptyNeighbor(x, y);
             if (empty) {
-                this.grid[empty.y][empty.x] = new Entity(EntityType.PLANT, empty.x, empty.y);
+                const newEntity = new Entity(EntityType.PLANT, empty.x, empty.y);
+                this.grid[empty.y][empty.x] = newEntity;
                 entity.energy -= 30;
+                entity.cyclesSinceReproduction = 0;
             }
         }
         
         if (entity.energy <= 0 || entity.age > entity.maxAge) {
-            this.grid[y][x] = new Entity(EntityType.DEAD_MATTER, x, y);
-            this.grid[y][x].energy = 20;
+            const dead = new Entity(EntityType.DEAD_MATTER, x, y);
+            dead.energy = 20;
+            dead.trail = entity.trail.slice();
+            this.grid[y][x] = dead;
             return false;
         }
         
@@ -265,9 +326,10 @@ class EcosystemWorld {
             this.grid[plant.y][plant.x] = null;
         }
         
-        if (Math.random() < 0.35) {
+        if (Math.random() < 0.4) {
             const empty = this.findEmptyNeighbor(x, y);
             if (empty) {
+                entity.addToTrail(x, y);
                 this.grid[y][x] = null;
                 this.grid[empty.y][empty.x] = entity;
                 entity.x = empty.x;
@@ -278,17 +340,24 @@ class EcosystemWorld {
         entity.energy -= 0.7;
         entity.age++;
         
-        if (entity.energy > 90 && Math.random() < 0.04) {
-            const empty = this.findEmptyNeighbor(entity.x, entity.y);
-            if (empty) {
-                this.grid[empty.y][empty.x] = new Entity(EntityType.HERBIVORE, empty.x, empty.y);
-                entity.energy -= 40;
+        // Herbivore reproduction: needs adjacent mate with enough energy
+        if (entity.energy > 90) {
+            const mate = this.findMate(entity.x, entity.y, EntityType.HERBIVORE);
+            if (mate) {
+                const empty = this.findEmptyNeighbor(entity.x, entity.y);
+                if (empty) {
+                    this.grid[empty.y][empty.x] = new Entity(EntityType.HERBIVORE, empty.x, empty.y);
+                    entity.energy -= 35;
+                    mate.entity.energy -= 35; // Both parents lose energy
+                }
             }
         }
         
         if (entity.energy <= 0 || entity.age > entity.maxAge) {
-            this.grid[entity.y][entity.x] = new Entity(EntityType.DEAD_MATTER, entity.x, entity.y);
-            this.grid[entity.y][entity.x].energy = 35;
+            const dead = new Entity(EntityType.DEAD_MATTER, entity.x, entity.y);
+            dead.energy = 35;
+            dead.trail = entity.trail.slice();
+            this.grid[entity.y][entity.x] = dead;
             return false;
         }
         
@@ -307,13 +376,15 @@ class EcosystemWorld {
         if (prey && entity.energy < 120) {
             const preyEntity = this.grid[prey.y][prey.x];
             entity.energy += Math.min(preyEntity.energy * 0.8, 50);
-            this.grid[prey.y][prey.x] = new Entity(EntityType.DEAD_MATTER, prey.x, prey.y);
-            this.grid[prey.y][prey.x].energy = 15;
+            const dead = new Entity(EntityType.DEAD_MATTER, prey.x, prey.y);
+            dead.energy = 15;
+            this.grid[prey.y][prey.x] = dead;
         }
         
-        if (Math.random() < 0.5) {
+        if (Math.random() < 0.55) {
             const empty = this.findEmptyNeighbor(x, y);
             if (empty) {
+                entity.addToTrail(x, y);
                 this.grid[y][x] = null;
                 this.grid[empty.y][empty.x] = entity;
                 entity.x = empty.x;
@@ -324,17 +395,24 @@ class EcosystemWorld {
         entity.energy -= 1.0;
         entity.age++;
         
-        if (entity.energy > 110 && Math.random() < 0.025) {
-            const empty = this.findEmptyNeighbor(entity.x, entity.y);
-            if (empty) {
-                this.grid[empty.y][empty.x] = new Entity(EntityType.CARNIVORE, empty.x, empty.y);
-                entity.energy -= 50;
+        // Carnivore reproduction: needs adjacent mate with enough energy
+        if (entity.energy > 110) {
+            const mate = this.findMate(entity.x, entity.y, EntityType.CARNIVORE);
+            if (mate) {
+                const empty = this.findEmptyNeighbor(entity.x, entity.y);
+                if (empty) {
+                    this.grid[empty.y][empty.x] = new Entity(EntityType.CARNIVORE, empty.x, empty.y);
+                    entity.energy -= 45;
+                    mate.entity.energy -= 45; // Both parents lose energy
+                }
             }
         }
         
         if (entity.energy <= 0 || entity.age > entity.maxAge) {
-            this.grid[entity.y][entity.x] = new Entity(EntityType.DEAD_MATTER, entity.x, entity.y);
-            this.grid[entity.y][entity.x].energy = 40;
+            const dead = new Entity(EntityType.DEAD_MATTER, entity.x, entity.y);
+            dead.energy = 40;
+            dead.trail = entity.trail.slice();
+            this.grid[entity.y][entity.x] = dead;
             return false;
         }
         
@@ -353,9 +431,10 @@ class EcosystemWorld {
             this.grid[dead.y][dead.x] = null;
         }
         
-        if (Math.random() < 0.15) {
+        if (Math.random() < 0.2) {
             const empty = this.findEmptyNeighbor(x, y);
             if (empty) {
+                entity.addToTrail(x, y);
                 this.grid[y][x] = null;
                 this.grid[empty.y][empty.x] = entity;
                 entity.x = empty.x;
@@ -366,11 +445,16 @@ class EcosystemWorld {
         entity.energy -= 0.35;
         entity.age++;
         
-        if (entity.energy > 60 && Math.random() < 0.03) {
-            const empty = this.findEmptyNeighbor(entity.x, entity.y);
-            if (empty) {
-                this.grid[empty.y][empty.x] = new Entity(EntityType.DECOMPOSER, empty.x, empty.y);
-                entity.energy -= 25;
+        // Decomposer reproduction: needs adjacent mate with enough energy
+        if (entity.energy > 60) {
+            const mate = this.findMate(entity.x, entity.y, EntityType.DECOMPOSER);
+            if (mate) {
+                const empty = this.findEmptyNeighbor(entity.x, entity.y);
+                if (empty) {
+                    this.grid[empty.y][empty.x] = new Entity(EntityType.DECOMPOSER, empty.x, empty.y);
+                    entity.energy -= 20;
+                    mate.entity.energy -= 20; // Both parents lose energy
+                }
             }
         }
         
@@ -486,67 +570,218 @@ class EcosystemWorld {
         document.getElementById('co2Value').textContent = Math.round(this.atmosphere.co2) + '%';
     }
     
+    drawCurvedLine(ctx, points, color, alpha = 0.6) {
+        if (points.length < 2) return;
+        
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 1;
+        ctx.lineCap = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(points[0].x * this.cellSize + this.cellSize / 2, 
+                   points[0].y * this.cellSize + this.cellSize / 2);
+        
+        for (let i = 1; i < points.length; i++) {
+            const p0 = points[i - 1];
+            const p1 = points[i];
+            
+            const cpx = (p0.x + p1.x) / 2 * this.cellSize + this.cellSize / 2;
+            const cpy = (p0.y + p1.y) / 2 * this.cellSize + this.cellSize / 2;
+            
+            ctx.quadraticCurveTo(
+                p0.x * this.cellSize + this.cellSize / 2,
+                p0.y * this.cellSize + this.cellSize / 2,
+                cpx, cpy
+            );
+        }
+        
+        ctx.stroke();
+        ctx.restore();
+    }
+    
+    drawSpiral(ctx, x, y, size, color) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.4;
+        ctx.lineWidth = 1;
+        
+        ctx.beginPath();
+        for (let i = 0; i < 20; i++) {
+            const angle = i * 0.5;
+            const r = i * size * 0.03;
+            const px = x + Math.cos(angle) * r;
+            const py = y + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+    }
+    
+    drawGrid(ctx, size) {
+        ctx.save();
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 1;
+        
+        // Draw vertical lines
+        for (let i = 0; i <= this.gridSize; i++) {
+            const x = i * this.cellSize;
+            // Fade from center
+            const distFromCenter = Math.abs(i - this.gridSize / 2) / (this.gridSize / 2);
+            ctx.globalAlpha = 0.3 * (1 - distFromCenter * 0.5);
+            
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, size);
+            ctx.stroke();
+        }
+        
+        // Draw horizontal lines
+        for (let i = 0; i <= this.gridSize; i++) {
+            const y = i * this.cellSize;
+            const distFromCenter = Math.abs(i - this.gridSize / 2) / (this.gridSize / 2);
+            ctx.globalAlpha = 0.3 * (1 - distFromCenter * 0.5);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(size, y);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+    }
+    
     render() {
         const ctx = this.ctx;
         const size = this.canvas.width;
         
-        // Clear - white background
-        ctx.fillStyle = '#ffffff';
+        // Dark background
+        ctx.fillStyle = '#0a0a0f';
         ctx.fillRect(0, 0, size, size);
         
-        // Draw entities
+        // Draw faded grid
+        this.drawGrid(ctx, size);
+        
+        // First pass: draw all trails/tendrils
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                const entity = this.grid[y][x];
+                if (!entity || entity.trail.length < 2) continue;
+                
+                const colors = this.colors[entity.type];
+                if (colors) {
+                    this.drawCurvedLine(ctx, entity.trail, colors.line, 0.5);
+                }
+            }
+        }
+        
+        // Draw connection lines between nearby same-type entities
+        const drawnConnections = new Set();
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                const entity = this.grid[y][x];
+                if (!entity || entity.type === EntityType.DEAD_MATTER) continue;
+                
+                const neighbors = this.getNeighbors(x, y);
+                for (const n of neighbors) {
+                    if (n.entity && n.entity.type === entity.type) {
+                        const key = `${Math.min(x, n.x)},${Math.min(y, n.y)}-${Math.max(x, n.x)},${Math.max(y, n.y)}`;
+                        if (!drawnConnections.has(key)) {
+                            drawnConnections.add(key);
+                            
+                            const colors = this.colors[entity.type];
+                            ctx.save();
+                            ctx.strokeStyle = colors.line;
+                            ctx.globalAlpha = 0.3;
+                            ctx.lineWidth = 1;
+                            
+                            // Draw wavy line
+                            const x1 = x * this.cellSize + this.cellSize / 2;
+                            const y1 = y * this.cellSize + this.cellSize / 2;
+                            const x2 = n.x * this.cellSize + this.cellSize / 2;
+                            const y2 = n.y * this.cellSize + this.cellSize / 2;
+                            
+                            const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * this.cellSize;
+                            const my = (y1 + y2) / 2 + (Math.random() - 0.5) * this.cellSize;
+                            
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1);
+                            ctx.quadraticCurveTo(mx, my, x2, y2);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Second pass: draw entities
         for (let y = 0; y < this.gridSize; y++) {
             for (let x = 0; x < this.gridSize; x++) {
                 const entity = this.grid[y][x];
                 if (!entity) continue;
                 
-                const color = this.colors[entity.type];
+                const colors = this.colors[entity.type];
                 const px = x * this.cellSize + this.cellSize / 2;
                 const py = y * this.cellSize + this.cellSize / 2;
                 
-                // Size based on energy (smaller = outline, larger = filled)
                 const energyRatio = Math.min(entity.energy / 100, 1);
-                const baseSize = this.cellSize * 0.35;
-                const maxSize = this.cellSize * 0.85;
+                const baseSize = this.cellSize * 0.3;
+                const maxSize = this.cellSize * 0.9;
                 const entitySize = baseSize + (maxSize - baseSize) * energyRatio;
-                
-                // Determine if filled or outline based on energy
-                const isFilled = entity.energy > 40 || entity.type === EntityType.DEAD_MATTER;
                 
                 ctx.save();
                 
-                if (isFilled) {
-                    // Filled square
-                    ctx.fillStyle = color;
+                // Filled square
+                ctx.fillStyle = colors.fill;
+                ctx.fillRect(
+                    px - entitySize / 2,
+                    py - entitySize / 2,
+                    entitySize,
+                    entitySize
+                );
+                
+                // Inner detail for high energy
+                if (entity.energy > 50 && entity.type !== EntityType.DEAD_MATTER) {
+                    const innerSize = entitySize * 0.5;
+                    ctx.fillStyle = colors.light;
                     ctx.fillRect(
-                        px - entitySize / 2,
-                        py - entitySize / 2,
-                        entitySize,
-                        entitySize
+                        px - innerSize / 2,
+                        py - innerSize / 2,
+                        innerSize,
+                        innerSize
                     );
                     
-                    // Add inner highlight for some entities
-                    if (entity.energy > 70 && entity.type !== EntityType.DEAD_MATTER) {
-                        const innerSize = entitySize * 0.5;
+                    // White core for very high energy
+                    if (entity.energy > 80) {
+                        const coreSize = entitySize * 0.25;
                         ctx.fillStyle = '#ffffff';
                         ctx.fillRect(
-                            px - innerSize / 2,
-                            py - innerSize / 2,
-                            innerSize,
-                            innerSize
+                            px - coreSize / 2,
+                            py - coreSize / 2,
+                            coreSize,
+                            coreSize
                         );
                     }
-                } else {
-                    // Outline only
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = Math.max(1, this.cellSize * 0.08);
-                    ctx.strokeRect(
-                        px - entitySize / 2,
-                        py - entitySize / 2,
-                        entitySize,
-                        entitySize
-                    );
                 }
+                
+                // Draw spiral for mature entities
+                if (entity.age > 30 && entity.type !== EntityType.DEAD_MATTER) {
+                    this.drawSpiral(ctx, px, py, entitySize, colors.line);
+                }
+                
+                // Outline
+                ctx.strokeStyle = colors.line;
+                ctx.globalAlpha = 0.6;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(
+                    px - entitySize / 2,
+                    py - entitySize / 2,
+                    entitySize,
+                    entitySize
+                );
                 
                 ctx.restore();
             }
@@ -577,7 +812,7 @@ class EcosystemWorld {
     }
     
     setSpeed(speed) {
-        this.updateInterval = Math.max(20, 300 - speed * 14);
+        this.updateInterval = Math.max(20, 250 - speed * 12);
     }
     
     setGridSize(size) {
@@ -592,15 +827,15 @@ class EcosystemWorld {
     applyPreset(preset) {
         const presets = {
             balanced: {
-                plants: 0.12, herbivores: 0.04, carnivores: 0.02, decomposers: 0.02,
+                plants: 0.10, herbivores: 0.03, carnivores: 0.015, decomposers: 0.02,
                 o2: 50, sunlight: 5
             },
             jungle: {
-                plants: 0.20, herbivores: 0.06, carnivores: 0.01, decomposers: 0.03,
+                plants: 0.18, herbivores: 0.05, carnivores: 0.01, decomposers: 0.03,
                 o2: 60, sunlight: 8
             },
             predator: {
-                plants: 0.08, herbivores: 0.05, carnivores: 0.04, decomposers: 0.02,
+                plants: 0.08, herbivores: 0.04, carnivores: 0.035, decomposers: 0.02,
                 o2: 45, sunlight: 4
             },
             barren: {
