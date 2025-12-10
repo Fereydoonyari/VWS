@@ -27,22 +27,22 @@ class Entity {
     
     getInitialEnergy() {
         switch (this.type) {
-            case EntityType.PLANT: return 50 + Math.random() * 30;
-            case EntityType.HERBIVORE: return 70 + Math.random() * 40;
-            case EntityType.CARNIVORE: return 100 + Math.random() * 50;
-            case EntityType.DECOMPOSER: return 40 + Math.random() * 20;
-            case EntityType.DEAD_MATTER: return 30 + Math.random() * 20;
+            case EntityType.PLANT: return 60 + Math.random() * 30;
+            case EntityType.HERBIVORE: return 80 + Math.random() * 40;
+            case EntityType.CARNIVORE: return 110 + Math.random() * 50;
+            case EntityType.DECOMPOSER: return 50 + Math.random() * 25;
+            case EntityType.DEAD_MATTER: return 35 + Math.random() * 25;
             default: return 0;
         }
     }
     
     getMaxAge() {
         switch (this.type) {
-            case EntityType.PLANT: return 80 + Math.random() * 40;
-            case EntityType.HERBIVORE: return 60 + Math.random() * 30;
-            case EntityType.CARNIVORE: return 50 + Math.random() * 25;
-            case EntityType.DECOMPOSER: return 100 + Math.random() * 50;
-            case EntityType.DEAD_MATTER: return 20 + Math.random() * 10;
+            case EntityType.PLANT: return 120 + Math.random() * 60;      // Longer lived
+            case EntityType.HERBIVORE: return 100 + Math.random() * 50;  // Longer lived
+            case EntityType.CARNIVORE: return 80 + Math.random() * 40;   // Longer lived
+            case EntityType.DECOMPOSER: return 150 + Math.random() * 75; // Much longer lived
+            case EntityType.DEAD_MATTER: return 30 + Math.random() * 20; // Decays slower
             default: return 0;
         }
     }
@@ -91,8 +91,36 @@ class EcosystemWorld {
         this.densities = {
             plants: 0.10,
             herbivores: 0.03,
-            carnivores: 0.015,
+            carnivores: 0.02,
             decomposers: 0.02
+        };
+        
+        // Configurable species settings
+        this.settings = {
+            plant: {
+                energyCost: 0.2,
+                reproEnergy: 70,
+                reproCooldown: 2,
+                spreadRadius: 4
+            },
+            herbivore: {
+                energyCost: 0.5,
+                foodEnergy: 35,
+                reproEnergy: 75,
+                moveChance: 0.35
+            },
+            carnivore: {
+                energyCost: 0.7,
+                huntEnergy: 70,
+                reproEnergy: 90,
+                moveChance: 0.45
+            },
+            colony: {
+                radius: 2,
+                maxBonus: 0.5,
+                moveBias: 0.7,
+                mateRadius: 2
+            }
         };
         
         // Vibrant colors like the reference
@@ -240,6 +268,61 @@ class EcosystemWorld {
         return neighbors[Math.floor(Math.random() * neighbors.length)];
     }
     
+    // Count same-type entities nearby (for colony bonus)
+    countNearbyOfType(x, y, type, radius = 2) {
+        let count = 0;
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize) {
+                    const entity = this.grid[ny][nx];
+                    if (entity && entity.type === type) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+    
+    // Calculate colony bonus based on nearby same-type entities
+    getColonyBonus(x, y, type) {
+        const radius = this.settings.colony.radius;
+        const maxBonus = this.settings.colony.maxBonus;
+        const nearbyCount = this.countNearbyOfType(x, y, type, radius);
+        return Math.min(nearbyCount * (maxBonus / 5), maxBonus);
+    }
+    
+    // Find best move - biased toward staying in colony
+    findColonyBiasedMove(x, y, type) {
+        const emptyNeighbors = this.getNeighbors(x, y).filter(n => !n.entity);
+        if (emptyNeighbors.length === 0) return null;
+        
+        const moveBias = this.settings.colony.moveBias;
+        
+        // Random chance to move randomly
+        if (Math.random() > moveBias) {
+            return emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+        }
+        
+        // Score each empty cell by how many same-type neighbors it would have
+        let bestMove = null;
+        let bestScore = -1;
+        
+        for (const cell of emptyNeighbors) {
+            const score = this.countNearbyOfType(cell.x, cell.y, type, this.settings.colony.radius);
+            const randomizedScore = score + Math.random() * 2;
+            if (randomizedScore > bestScore) {
+                bestScore = randomizedScore;
+                bestMove = cell;
+            }
+        }
+        
+        return bestMove || emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+    }
+    
     // Check if there's another entity of the same type within a radius
     hasNearbyOfType(x, y, type, radius = 3) {
         for (let dy = -radius; dy <= radius; dy++) {
@@ -258,28 +341,42 @@ class EcosystemWorld {
         return false;
     }
     
-    // Check if there's an adjacent mate (for animals)
-    findMate(x, y, type) {
-        const neighbors = this.getNeighbors(x, y).filter(n => 
-            n.entity && 
-            n.entity.type === type && 
-            n.entity.energy > 50  // Mate must have enough energy
-        );
-        if (neighbors.length === 0) return null;
-        return neighbors[Math.floor(Math.random() * neighbors.length)];
+    // Check for mate within radius 2 (easier to find mates)
+    findMate(x, y, type, radius = 2) {
+        const potentialMates = [];
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize) {
+                    const entity = this.grid[ny][nx];
+                    if (entity && entity.type === type && entity.energy > 40) {
+                        potentialMates.push({ x: nx, y: ny, entity });
+                    }
+                }
+            }
+        }
+        if (potentialMates.length === 0) return null;
+        return potentialMates[Math.floor(Math.random() * potentialMates.length)];
     }
     
     processPlant(entity, x, y) {
-        if (this.atmosphere.co2 > 5) {
-            const rate = this.atmosphere.sunlight * 0.3;
+        const settings = this.settings.plant;
+        const colonyBonus = this.getColonyBonus(x, y, EntityType.PLANT);
+        
+        // Photosynthesis - bonus in colonies
+        if (this.atmosphere.co2 > 3) {
+            const rate = this.atmosphere.sunlight * (0.5 + colonyBonus * 0.3);
             entity.energy += rate;
-            this.atmosphere.co2 = Math.max(0, this.atmosphere.co2 - 0.03);
-            this.atmosphere.o2 = Math.min(100, this.atmosphere.o2 + 0.05);
+            this.atmosphere.co2 = Math.max(0, this.atmosphere.co2 - 0.02);
+            this.atmosphere.o2 = Math.min(100, this.atmosphere.o2 + 0.04);
         } else {
-            entity.energy -= 1;
+            entity.energy -= 0.5;
         }
         
-        entity.energy -= 0.3;
+        // Energy cost (configurable)
+        entity.energy -= Math.max(settings.energyCost * 0.5, settings.energyCost - colonyBonus * 0.1);
         entity.age++;
         entity.cyclesSinceReproduction++;
         
@@ -288,15 +385,19 @@ class EcosystemWorld {
             entity.addToTrail(x + (Math.random() - 0.5) * 2, y + (Math.random() - 0.5) * 2);
         }
         
-        // Plant reproduction: every 4 cycles, needs another plant within radius 3
-        if (entity.energy > 80 && 
-            entity.cyclesSinceReproduction >= 4 && 
-            this.hasNearbyOfType(x, y, EntityType.PLANT, 3)) {
-            const empty = this.findEmptyNeighbor(x, y);
+        // Plant reproduction - higher chance in colonies (configurable)
+        const nearbyPlants = this.countNearbyOfType(x, y, EntityType.PLANT, settings.spreadRadius);
+        const reproChance = nearbyPlants > 0 ? 1 : 0.5;
+        
+        if (entity.energy > settings.reproEnergy && 
+            entity.cyclesSinceReproduction >= settings.reproCooldown && 
+            nearbyPlants > 0 &&
+            Math.random() < reproChance) {
+            const empty = this.findColonyBiasedMove(x, y, EntityType.PLANT);
             if (empty) {
                 const newEntity = new Entity(EntityType.PLANT, empty.x, empty.y);
                 this.grid[empty.y][empty.x] = newEntity;
-                entity.energy -= 30;
+                entity.energy -= settings.reproEnergy * 0.3;
                 entity.cyclesSinceReproduction = 0;
             }
         }
@@ -313,21 +414,26 @@ class EcosystemWorld {
     }
     
     processHerbivore(entity, x, y) {
-        if (this.atmosphere.o2 > 10) {
-            this.atmosphere.o2 = Math.max(0, this.atmosphere.o2 - 0.02);
-            this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.015);
+        const settings = this.settings.herbivore;
+        const colonyBonus = this.getColonyBonus(x, y, EntityType.HERBIVORE);
+        
+        if (this.atmosphere.o2 > 8) {
+            this.atmosphere.o2 = Math.max(0, this.atmosphere.o2 - 0.015);
+            this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.01);
         } else {
-            entity.energy -= 5;
+            entity.energy -= 3 * (1 - colonyBonus);
         }
         
+        // Eating (configurable food energy)
         const plant = this.findNeighborOfType(x, y, EntityType.PLANT);
-        if (plant && entity.energy < 100) {
-            entity.energy += Math.min(this.grid[plant.y][plant.x].energy, 25);
+        if (plant && entity.energy < 120) {
+            entity.energy += Math.min(this.grid[plant.y][plant.x].energy, settings.foodEnergy);
             this.grid[plant.y][plant.x] = null;
         }
         
-        if (Math.random() < 0.4) {
-            const empty = this.findEmptyNeighbor(x, y);
+        // Colony-biased movement (configurable)
+        if (Math.random() < settings.moveChance) {
+            const empty = this.findColonyBiasedMove(x, y, EntityType.HERBIVORE);
             if (empty) {
                 entity.addToTrail(x, y);
                 this.grid[y][x] = null;
@@ -337,18 +443,20 @@ class EcosystemWorld {
             }
         }
         
-        entity.energy -= 0.7;
+        // Energy cost (configurable)
+        entity.energy -= Math.max(settings.energyCost * 0.6, settings.energyCost - colonyBonus * 0.2);
+        entity.energy += colonyBonus * 0.15;
         entity.age++;
         
-        // Herbivore reproduction: needs adjacent mate with enough energy
-        if (entity.energy > 90) {
-            const mate = this.findMate(entity.x, entity.y, EntityType.HERBIVORE);
+        // Reproduction (configurable)
+        if (entity.energy > settings.reproEnergy) {
+            const mate = this.findMate(entity.x, entity.y, EntityType.HERBIVORE, this.settings.colony.mateRadius);
             if (mate) {
-                const empty = this.findEmptyNeighbor(entity.x, entity.y);
+                const empty = this.findColonyBiasedMove(entity.x, entity.y, EntityType.HERBIVORE);
                 if (empty) {
                     this.grid[empty.y][empty.x] = new Entity(EntityType.HERBIVORE, empty.x, empty.y);
-                    entity.energy -= 35;
-                    mate.entity.energy -= 35; // Both parents lose energy
+                    entity.energy -= settings.reproEnergy * 0.35;
+                    mate.entity.energy -= settings.reproEnergy * 0.25;
                 }
             }
         }
@@ -365,24 +473,30 @@ class EcosystemWorld {
     }
     
     processCarnivore(entity, x, y) {
-        if (this.atmosphere.o2 > 10) {
-            this.atmosphere.o2 = Math.max(0, this.atmosphere.o2 - 0.03);
-            this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.02);
+        const settings = this.settings.carnivore;
+        const packBonus = this.getColonyBonus(x, y, EntityType.CARNIVORE);
+        
+        if (this.atmosphere.o2 > 8) {
+            this.atmosphere.o2 = Math.max(0, this.atmosphere.o2 - 0.02);
+            this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.015);
         } else {
-            entity.energy -= 6;
+            entity.energy -= 4 * (1 - packBonus);
         }
         
+        // Pack hunting (configurable)
         const prey = this.findNeighborOfType(x, y, EntityType.HERBIVORE);
-        if (prey && entity.energy < 120) {
+        if (prey && entity.energy < 140) {
             const preyEntity = this.grid[prey.y][prey.x];
-            entity.energy += Math.min(preyEntity.energy * 0.8, 50);
+            const huntBonus = 1 + packBonus * 0.3;
+            entity.energy += Math.min(preyEntity.energy * 0.9 * huntBonus, settings.huntEnergy);
             const dead = new Entity(EntityType.DEAD_MATTER, prey.x, prey.y);
-            dead.energy = 15;
+            dead.energy = 20;
             this.grid[prey.y][prey.x] = dead;
         }
         
-        if (Math.random() < 0.55) {
-            const empty = this.findEmptyNeighbor(x, y);
+        // Pack-biased movement (configurable)
+        if (Math.random() < settings.moveChance) {
+            const empty = this.findColonyBiasedMove(x, y, EntityType.CARNIVORE);
             if (empty) {
                 entity.addToTrail(x, y);
                 this.grid[y][x] = null;
@@ -392,18 +506,20 @@ class EcosystemWorld {
             }
         }
         
-        entity.energy -= 1.0;
+        // Energy cost (configurable)
+        entity.energy -= Math.max(settings.energyCost * 0.6, settings.energyCost - packBonus * 0.3);
+        entity.energy += packBonus * 0.1;
         entity.age++;
         
-        // Carnivore reproduction: needs adjacent mate with enough energy
-        if (entity.energy > 110) {
-            const mate = this.findMate(entity.x, entity.y, EntityType.CARNIVORE);
+        // Reproduction (configurable)
+        if (entity.energy > settings.reproEnergy) {
+            const mate = this.findMate(entity.x, entity.y, EntityType.CARNIVORE, this.settings.colony.mateRadius);
             if (mate) {
-                const empty = this.findEmptyNeighbor(entity.x, entity.y);
+                const empty = this.findColonyBiasedMove(entity.x, entity.y, EntityType.CARNIVORE);
                 if (empty) {
                     this.grid[empty.y][empty.x] = new Entity(EntityType.CARNIVORE, empty.x, empty.y);
-                    entity.energy -= 45;
-                    mate.entity.energy -= 45; // Both parents lose energy
+                    entity.energy -= settings.reproEnergy * 0.35;
+                    mate.entity.energy -= settings.reproEnergy * 0.25;
                 }
             }
         }
@@ -420,19 +536,26 @@ class EcosystemWorld {
     }
     
     processDecomposer(entity, x, y) {
-        this.atmosphere.o2 = Math.max(0, this.atmosphere.o2 - 0.01);
-        this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.015);
+        // Colony bonus - decomposers work better in clusters
+        const colonyBonus = this.getColonyBonus(x, y, EntityType.DECOMPOSER);
         
+        // Decomposers barely use oxygen
+        this.atmosphere.o2 = Math.max(0, this.atmosphere.o2 - 0.005);
+        this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.01);
+        
+        // Decomposing - bonus efficiency in clusters
         const dead = this.findNeighborOfType(x, y, EntityType.DEAD_MATTER);
         if (dead) {
             const deadEntity = this.grid[dead.y][dead.x];
-            entity.energy += deadEntity.energy * 0.6;
-            this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.3);
+            const efficiencyBonus = 1 + colonyBonus * 0.2;  // Up to 10% more efficient
+            entity.energy += deadEntity.energy * 0.8 * efficiencyBonus;
+            this.atmosphere.co2 = Math.min(100, this.atmosphere.co2 + 0.25);
             this.grid[dead.y][dead.x] = null;
         }
         
-        if (Math.random() < 0.2) {
-            const empty = this.findEmptyNeighbor(x, y);
+        // Colony-biased movement
+        if (Math.random() < 0.25) {
+            const empty = this.findColonyBiasedMove(x, y, EntityType.DECOMPOSER);
             if (empty) {
                 entity.addToTrail(x, y);
                 this.grid[y][x] = null;
@@ -442,18 +565,20 @@ class EcosystemWorld {
             }
         }
         
-        entity.energy -= 0.35;
+        // Reduced energy cost in clusters
+        entity.energy -= Math.max(0.15, 0.25 - colonyBonus * 0.1);
+        entity.energy += colonyBonus * 0.1;  // Small cluster bonus
         entity.age++;
         
-        // Decomposer reproduction: needs adjacent mate with enough energy
-        if (entity.energy > 60) {
+        // Decomposer reproduction - cluster breeding
+        if (entity.energy > 50) {
             const mate = this.findMate(entity.x, entity.y, EntityType.DECOMPOSER);
             if (mate) {
-                const empty = this.findEmptyNeighbor(entity.x, entity.y);
+                const empty = this.findColonyBiasedMove(entity.x, entity.y, EntityType.DECOMPOSER);
                 if (empty) {
                     this.grid[empty.y][empty.x] = new Entity(EntityType.DECOMPOSER, empty.x, empty.y);
-                    entity.energy -= 20;
-                    mate.entity.energy -= 20; // Both parents lose energy
+                    entity.energy -= 15;
+                    mate.entity.energy -= 10;
                 }
             }
         }
@@ -827,7 +952,7 @@ class EcosystemWorld {
     applyPreset(preset) {
         const presets = {
             balanced: {
-                plants: 0.10, herbivores: 0.03, carnivores: 0.015, decomposers: 0.02,
+                plants: 0.10, herbivores: 0.03, carnivores: 0.02, decomposers: 0.02,
                 o2: 50, sunlight: 5
             },
             jungle: {
@@ -841,6 +966,14 @@ class EcosystemWorld {
             barren: {
                 plants: 0.04, herbivores: 0.02, carnivores: 0.01, decomposers: 0.01,
                 o2: 30, sunlight: 3
+            },
+            overpop: {
+                plants: 0.20, herbivores: 0.08, carnivores: 0.04, decomposers: 0.04,
+                o2: 55, sunlight: 7
+            },
+            sparse: {
+                plants: 0.06, herbivores: 0.02, carnivores: 0.01, decomposers: 0.01,
+                o2: 40, sunlight: 4
             }
         };
         
@@ -859,6 +992,23 @@ class EcosystemWorld {
         }
         return null;
     }
+    
+    // Settings updaters
+    updatePlantSettings(key, value) {
+        this.settings.plant[key] = value;
+    }
+    
+    updateHerbivoreSettings(key, value) {
+        this.settings.herbivore[key] = value;
+    }
+    
+    updateCarnivoreSettings(key, value) {
+        this.settings.carnivore[key] = value;
+    }
+    
+    updateColonySettings(key, value) {
+        this.settings.colony[key] = value;
+    }
 }
 
 // UI Controller
@@ -874,7 +1024,7 @@ class UIController {
         
         playPauseBtn.addEventListener('click', () => {
             const running = this.world.toggle();
-            playPauseText.textContent = running ? 'PAUSE' : 'START';
+            playPauseText.textContent = running ? '⏸ PAUSE' : '▶ START';
             playPauseBtn.classList.toggle('active', running);
         });
         
@@ -884,35 +1034,114 @@ class UIController {
         
         document.getElementById('reset').addEventListener('click', () => {
             this.world.reset();
-            playPauseText.textContent = 'START';
+            playPauseText.textContent = '▶ START';
             playPauseBtn.classList.remove('active');
         });
         
         // Speed
-        const speedSlider = document.getElementById('speed');
-        const speedValue = document.getElementById('speedValue');
-        speedSlider.addEventListener('input', () => {
-            speedValue.textContent = speedSlider.value;
-            this.world.setSpeed(parseInt(speedSlider.value));
+        this.setupSlider('speed', 'speedValue', (val) => {
+            this.world.setSpeed(val);
         });
         
         // Grid size
-        const gridSizeSlider = document.getElementById('gridSize');
-        const gridSizeValue = document.getElementById('gridSizeValue');
-        gridSizeSlider.addEventListener('input', () => {
-            gridSizeValue.textContent = gridSizeSlider.value;
-        });
-        gridSizeSlider.addEventListener('change', () => {
-            this.world.setGridSize(parseInt(gridSizeSlider.value));
+        this.setupSlider('gridSize', 'gridSizeValue', (val) => {
+            this.world.setGridSize(val);
             this.world.reset();
+        }, true);
+        
+        // Atmosphere
+        this.setupSlider('sunlight', 'sunlightValue', (val) => {
+            this.world.setSunlight(val);
         });
         
-        // Sunlight
-        const sunSlider = document.getElementById('sunlight');
-        const sunValue = document.getElementById('sunlightValue');
-        sunSlider.addEventListener('input', () => {
-            sunValue.textContent = sunSlider.value;
-            this.world.setSunlight(parseInt(sunSlider.value));
+        this.setupSlider('initialO2', 'initialO2Value', (val) => {
+            this.world.atmosphere.o2 = val;
+            this.world.atmosphere.co2 = 100 - val;
+        }, false, '%');
+        
+        // Spawn Densities
+        this.setupSlider('plantDensity', 'plantDensityValue', (val) => {
+            this.world.densities.plants = val / 100;
+        }, false, '%');
+        
+        this.setupSlider('herbivoreDensity', 'herbivoreDensityValue', (val) => {
+            this.world.densities.herbivores = val / 100;
+        }, false, '%');
+        
+        this.setupSlider('carnivoreDensity', 'carnivoreDensityValue', (val) => {
+            this.world.densities.carnivores = val / 100;
+        }, false, '%');
+        
+        this.setupSlider('decomposerDensity', 'decomposerDensityValue', (val) => {
+            this.world.densities.decomposers = val / 100;
+        }, false, '%');
+        
+        // Plant Settings
+        this.setupSlider('plantEnergyCost', 'plantEnergyCostValue', (val) => {
+            this.world.updatePlantSettings('energyCost', val / 10);
+        }, false, '', (val) => (val / 10).toFixed(1));
+        
+        this.setupSlider('plantReproEnergy', 'plantReproEnergyValue', (val) => {
+            this.world.updatePlantSettings('reproEnergy', val);
+        });
+        
+        this.setupSlider('plantReproCooldown', 'plantReproCooldownValue', (val) => {
+            this.world.updatePlantSettings('reproCooldown', val);
+        });
+        
+        this.setupSlider('plantSpreadRadius', 'plantSpreadRadiusValue', (val) => {
+            this.world.updatePlantSettings('spreadRadius', val);
+        });
+        
+        // Herbivore Settings
+        this.setupSlider('herbivoreEnergyCost', 'herbivoreEnergyCostValue', (val) => {
+            this.world.updateHerbivoreSettings('energyCost', val / 10);
+        }, false, '', (val) => (val / 10).toFixed(1));
+        
+        this.setupSlider('herbivoreFoodEnergy', 'herbivoreFoodEnergyValue', (val) => {
+            this.world.updateHerbivoreSettings('foodEnergy', val);
+        });
+        
+        this.setupSlider('herbivoreReproEnergy', 'herbivoreReproEnergyValue', (val) => {
+            this.world.updateHerbivoreSettings('reproEnergy', val);
+        });
+        
+        this.setupSlider('herbivoreMoveChance', 'herbivoreMoveChanceValue', (val) => {
+            this.world.updateHerbivoreSettings('moveChance', val / 100);
+        }, false, '%');
+        
+        // Carnivore Settings
+        this.setupSlider('carnivoreEnergyCost', 'carnivoreEnergyCostValue', (val) => {
+            this.world.updateCarnivoreSettings('energyCost', val / 10);
+        }, false, '', (val) => (val / 10).toFixed(1));
+        
+        this.setupSlider('carnivoreHuntEnergy', 'carnivoreHuntEnergyValue', (val) => {
+            this.world.updateCarnivoreSettings('huntEnergy', val);
+        });
+        
+        this.setupSlider('carnivoreReproEnergy', 'carnivoreReproEnergyValue', (val) => {
+            this.world.updateCarnivoreSettings('reproEnergy', val);
+        });
+        
+        this.setupSlider('carnivoreMoveChance', 'carnivoreMoveChanceValue', (val) => {
+            this.world.updateCarnivoreSettings('moveChance', val / 100);
+        }, false, '%');
+        
+        // Colony Settings
+        this.setupSlider('colonyRadius', 'colonyRadiusValue', (val) => {
+            this.world.updateColonySettings('radius', val);
+        });
+        
+        this.setupSlider('colonyMaxBonus', 'colonyMaxBonusValue', (val) => {
+            this.world.updateColonySettings('maxBonus', val / 10);
+        }, false, '', (val) => (val / 10).toFixed(1));
+        
+        this.setupSlider('colonyMoveBias', 'colonyMoveBiasValue', (val) => {
+            this.world.updateColonySettings('moveBias', val / 100);
+        }, false, '%');
+        
+        this.setupSlider('mateRadius', 'mateRadiusValue', (val) => {
+            this.world.updateColonySettings('mateRadius', val);
         });
         
         // Presets
@@ -925,8 +1154,14 @@ class UIController {
                 const settings = this.world.applyPreset(preset);
                 
                 if (settings) {
-                    document.getElementById('sunlight').value = settings.sunlight;
-                    document.getElementById('sunlightValue').textContent = settings.sunlight;
+                    // Update density sliders
+                    this.updateSliderValue('plantDensity', settings.plants * 100, '%');
+                    this.updateSliderValue('herbivoreDensity', settings.herbivores * 100, '%');
+                    this.updateSliderValue('carnivoreDensity', settings.carnivores * 100, '%');
+                    this.updateSliderValue('decomposerDensity', settings.decomposers * 100, '%');
+                    this.updateSliderValue('sunlight', settings.sunlight);
+                    this.updateSliderValue('initialO2', settings.o2, '%');
+                    
                     this.world.reset();
                 }
             });
@@ -934,6 +1169,37 @@ class UIController {
         
         // Initialize
         this.world.populate();
+    }
+    
+    setupSlider(sliderId, valueId, callback, onChange = false, suffix = '', formatter = null) {
+        const slider = document.getElementById(sliderId);
+        const valueEl = document.getElementById(valueId);
+        
+        if (!slider || !valueEl) return;
+        
+        const updateValue = () => {
+            const val = parseInt(slider.value);
+            valueEl.textContent = formatter ? formatter(val) : val + suffix;
+            callback(val);
+        };
+        
+        if (onChange) {
+            slider.addEventListener('input', () => {
+                valueEl.textContent = formatter ? formatter(parseInt(slider.value)) : slider.value + suffix;
+            });
+            slider.addEventListener('change', updateValue);
+        } else {
+            slider.addEventListener('input', updateValue);
+        }
+    }
+    
+    updateSliderValue(sliderId, value, suffix = '') {
+        const slider = document.getElementById(sliderId);
+        const valueEl = document.getElementById(sliderId + 'Value');
+        if (slider && valueEl) {
+            slider.value = value;
+            valueEl.textContent = Math.round(value) + suffix;
+        }
     }
 }
 
@@ -945,4 +1211,41 @@ document.addEventListener('DOMContentLoaded', () => {
     
     world.setSpeed(10);
     window.ecosystem = world;
+    
+    // UI Update loop for real-time stats
+    function updateUI() {
+        // Header stats
+        const genEl = document.getElementById('generation');
+        const popEl = document.getElementById('population');
+        if (genEl) genEl.textContent = world.generation;
+        if (popEl) popEl.textContent = 
+            world.populations.plants + world.populations.herbivores + 
+            world.populations.carnivores + world.populations.decomposers;
+        
+        // Atmosphere bars
+        const o2Bar = document.getElementById('o2Bar');
+        const co2Bar = document.getElementById('co2Bar');
+        const o2Value = document.getElementById('o2Value');
+        const co2Value = document.getElementById('co2Value');
+        
+        if (o2Bar) o2Bar.style.width = world.atmosphere.o2 + '%';
+        if (co2Bar) co2Bar.style.width = world.atmosphere.co2 + '%';
+        if (o2Value) o2Value.textContent = Math.round(world.atmosphere.o2) + '%';
+        if (co2Value) co2Value.textContent = Math.round(world.atmosphere.co2) + '%';
+        
+        // Population counts
+        const plantCount = document.getElementById('plantCount');
+        const herbCount = document.getElementById('herbivoreCount');
+        const carnCount = document.getElementById('carnivoreCount');
+        const decomCount = document.getElementById('decomposerCount');
+        
+        if (plantCount) plantCount.textContent = world.populations.plants;
+        if (herbCount) herbCount.textContent = world.populations.herbivores;
+        if (carnCount) carnCount.textContent = world.populations.carnivores;
+        if (decomCount) decomCount.textContent = world.populations.decomposers;
+        
+        requestAnimationFrame(updateUI);
+    }
+    
+    updateUI();
 });
