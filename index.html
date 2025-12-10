@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voxel Ecosystem</title>
+    <title>Voxel Ecosystem - Complete Simulation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,290 +13,329 @@
     <div class="app-container">
         <header class="header">
             <div class="header-bar">
-                <h1 class="title">VOXEL ECOSYSTEM</h1>
+                <h1 class="title">🧬 VOXEL ECOSYSTEM</h1>
                 <div class="header-stats">
                     <span class="header-stat">CYCLE: <strong id="generation">0</strong></span>
                     <span class="header-stat">POP: <strong id="population">0</strong></span>
+                    <span class="header-stat" id="timeDisplay">☀️ 12:00</span>
+                    <span class="header-stat" id="seasonDisplay">🌸 SPRING</span>
+                    <span class="header-stat" id="weatherDisplay">🌤️ CLEAR</span>
                 </div>
             </div>
         </header>
 
         <main class="main-content">
+            <aside class="sidebar left-sidebar">
+                <!-- Simulation Controls -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">⚡ SIMULATION</span>
+                        <span class="panel-toggle">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="button-row">
+                            <button class="btn btn-primary" id="playPause">
+                                <span id="playPauseText">▶ START</span>
+                            </button>
+                            <button class="btn" id="step">⏭ STEP</button>
+                            <button class="btn btn-danger" id="reset">↻ RESET</button>
+                        </div>
+                        <div class="slider-row">
+                            <label>SPEED</label>
+                            <input type="range" id="speed" min="1" max="20" value="10">
+                            <span class="value" id="speedValue">10</span>
+                        </div>
+                        <div class="slider-row">
+                            <label>GRID</label>
+                            <input type="range" id="gridSize" min="40" max="100" value="60">
+                            <span class="value" id="gridSizeValue">60</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tools -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">🔧 TOOLS</span>
+                        <span class="panel-toggle">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="tool-grid">
+                            <button class="tool-btn active" data-tool="select" title="Select & Inspect">🔍</button>
+                            <button class="tool-btn" data-tool="spawn" title="Spawn Entity">➕</button>
+                            <button class="tool-btn" data-tool="terrain" title="Paint Terrain">🖌️</button>
+                            <button class="tool-btn" data-tool="kill" title="Remove Entity">💀</button>
+                        </div>
+                        
+                        <div class="spawn-types">
+                            <div class="mini-label">SPAWN TYPE:</div>
+                            <div class="spawn-grid">
+                                <button class="spawn-type-btn active" data-type="1" title="Plant">🌱</button>
+                                <button class="spawn-type-btn" data-type="2" title="Herbivore">🐰</button>
+                                <button class="spawn-type-btn" data-type="3" title="Carnivore">🦁</button>
+                                <button class="spawn-type-btn" data-type="4" title="Decomposer">🍄</button>
+                                <button class="spawn-type-btn" data-type="6" title="Omnivore">🐷</button>
+                                <button class="spawn-type-btn" data-type="7" title="Apex">🦖</button>
+                                <button class="spawn-type-btn" data-type="8" title="Parasite">🦠</button>
+                            </div>
+                        </div>
+                        
+                        <div class="terrain-types">
+                            <div class="mini-label">TERRAIN BRUSH:</div>
+                            <div class="terrain-grid">
+                                <button class="terrain-btn active" data-terrain="0" title="Normal">⬛</button>
+                                <button class="terrain-btn" data-terrain="1" title="Water">💧</button>
+                                <button class="terrain-btn" data-terrain="2" title="Mountain">⛰️</button>
+                                <button class="terrain-btn" data-terrain="3" title="Fertile">🌿</button>
+                                <button class="terrain-btn" data-terrain="4" title="Barren">🏜️</button>
+                            </div>
+                            <div class="slider-row">
+                                <label>SIZE</label>
+                                <input type="range" id="brushSize" min="1" max="5" value="2">
+                                <span class="value" id="brushSizeValue">2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Atmosphere -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">🌍 ATMOSPHERE</span>
+                        <span class="panel-toggle">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="atmosphere-display">
+                            <div class="atmo-row">
+                                <span class="atmo-label">O₂</span>
+                                <div class="atmo-bar"><div class="atmo-fill o2" id="o2Bar"></div></div>
+                                <span class="atmo-value" id="o2Value">50%</span>
+                            </div>
+                            <div class="atmo-row">
+                                <span class="atmo-label">CO₂</span>
+                                <div class="atmo-bar"><div class="atmo-fill co2" id="co2Bar"></div></div>
+                                <span class="atmo-value" id="co2Value">50%</span>
+                            </div>
+                        </div>
+                        <div class="slider-row">
+                            <label>SUN</label>
+                            <input type="range" id="sunlight" min="1" max="10" value="5">
+                            <span class="value" id="sunlightValue">5</span>
+                        </div>
+                        <div class="slider-row">
+                            <label>INIT O₂</label>
+                            <input type="range" id="initialO2" min="20" max="80" value="50">
+                            <span class="value" id="initialO2Value">50%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Heatmaps -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">🗺️ HEATMAPS</span>
+                        <span class="panel-toggle">▶</span>
+                    </div>
+                    <div class="panel-content collapsed">
+                        <div class="heatmap-grid">
+                            <button class="heatmap-btn" data-mode="density">DENSITY</button>
+                            <button class="heatmap-btn" data-mode="energy">ENERGY</button>
+                            <button class="heatmap-btn" data-mode="danger">DANGER</button>
+                            <button class="heatmap-btn" data-mode="fertility">FERTILITY</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disasters -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">⚠️ DISASTERS</span>
+                        <span class="panel-toggle">▶</span>
+                    </div>
+                    <div class="panel-content collapsed">
+                        <div class="disaster-grid">
+                            <button class="disaster-btn btn btn-danger" data-disaster="fire">🔥 FIRE</button>
+                            <button class="disaster-btn btn" data-disaster="flood">🌊 FLOOD</button>
+                            <button class="disaster-btn btn" data-disaster="disease">🦠 DISEASE</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save/Load -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">💾 SAVE/LOAD</span>
+                        <span class="panel-toggle">▶</span>
+                    </div>
+                    <div class="panel-content collapsed">
+                        <div class="button-row">
+                            <button class="btn btn-primary" id="saveBtn">💾 SAVE</button>
+                            <button class="btn" id="loadBtn">📂 LOAD</button>
+                            <input type="file" id="loadFile" accept=".json" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
             <div class="canvas-container" id="canvasContainer">
                 <canvas id="world"></canvas>
             </div>
+
+            <aside class="sidebar right-sidebar">
+                <!-- Population -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">📊 POPULATION</span>
+                        <span class="panel-toggle">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="species-list">
+                            <div class="species-item flora">
+                                <div class="species-icon"></div>
+                                <span class="species-name">Plant</span>
+                                <span class="species-count" id="plantCount">0</span>
+                            </div>
+                            <div class="species-item herbivore">
+                                <div class="species-icon"></div>
+                                <span class="species-name">Herbivore</span>
+                                <span class="species-count" id="herbivoreCount">0</span>
+                            </div>
+                            <div class="species-item carnivore">
+                                <div class="species-icon"></div>
+                                <span class="species-name">Carnivore</span>
+                                <span class="species-count" id="carnivoreCount">0</span>
+                            </div>
+                            <div class="species-item omnivore">
+                                <div class="species-icon"></div>
+                                <span class="species-name">Omnivore</span>
+                                <span class="species-count" id="omnivoreCount">0</span>
+                            </div>
+                            <div class="species-item apex">
+                                <div class="species-icon"></div>
+                                <span class="species-name">Apex</span>
+                                <span class="species-count" id="apexCount">0</span>
+                            </div>
+                            <div class="species-item decomposer">
+                                <div class="species-icon"></div>
+                                <span class="species-name">Decomposer</span>
+                                <span class="species-count" id="decomposerCount">0</span>
+                            </div>
+                            <div class="species-item parasite">
+                                <div class="species-icon"></div>
+                                <span class="species-name">Parasite</span>
+                                <span class="species-count" id="parasiteCount">0</span>
+                            </div>
+                        </div>
+                        <div class="stats-row">
+                            <span>Biodiversity:</span>
+                            <span id="biodiversity">0%</span>
+                        </div>
+                        <div class="stats-row">
+                            <span>Avg Fitness:</span>
+                            <span id="avgFitness">0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Population Graph -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">📈 GRAPH</span>
+                        <span class="panel-toggle">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="graph-container">
+                            <canvas id="populationGraph" width="220" height="120"></canvas>
+                        </div>
+                        <div class="graph-legend">
+                            <span class="legend-item flora">●</span>
+                            <span class="legend-item herbivore">●</span>
+                            <span class="legend-item carnivore">●</span>
+                            <span class="legend-item omnivore">●</span>
+                            <span class="legend-item apex">●</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Entity Inspector -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">🔬 INSPECTOR</span>
+                        <span class="panel-toggle">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="entityInspector">
+                            <div class="inspector-empty">Click an entity to inspect</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spawn Density -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">🌱 SPAWN DENSITY</span>
+                        <span class="panel-toggle">▶</span>
+                    </div>
+                    <div class="panel-content collapsed">
+                        <div class="slider-row">
+                            <label class="label-flora">PLANT</label>
+                            <input type="range" id="plantDensity" min="0" max="30" value="12">
+                            <span class="value" id="plantDensityValue">12%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label class="label-herbivore">HERB</label>
+                            <input type="range" id="herbivoreDensity" min="0" max="15" value="4">
+                            <span class="value" id="herbivoreDensityValue">4%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label class="label-carnivore">CARN</label>
+                            <input type="range" id="carnivoreDensity" min="0" max="10" value="2">
+                            <span class="value" id="carnivoreDensityValue">2%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label class="label-omnivore">OMNI</label>
+                            <input type="range" id="omnivoreDensity" min="0" max="10" value="1">
+                            <span class="value" id="omnivoreDensityValue">1%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label class="label-apex">APEX</label>
+                            <input type="range" id="apexDensity" min="0" max="5" value="0.5" step="0.1">
+                            <span class="value" id="apexDensityValue">0.5%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label class="label-decomposer">DECOM</label>
+                            <input type="range" id="decomposerDensity" min="0" max="10" value="2">
+                            <span class="value" id="decomposerDensityValue">2%</span>
+                        </div>
+                        <div class="slider-row">
+                            <label class="label-parasite">PARA</label>
+                            <input type="range" id="parasiteDensity" min="0" max="5" value="0.5" step="0.1">
+                            <span class="value" id="parasiteDensityValue">0.5%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Presets -->
+                <div class="panel">
+                    <div class="panel-header" onclick="togglePanel(this)">
+                        <span class="panel-title">🎮 PRESETS</span>
+                        <span class="panel-toggle">▼</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="preset-grid">
+                            <button class="btn btn-preset active" data-preset="balanced">BALANCED</button>
+                            <button class="btn btn-preset" data-preset="jungle">JUNGLE</button>
+                            <button class="btn btn-preset" data-preset="predator">PREDATOR</button>
+                            <button class="btn btn-preset" data-preset="barren">BARREN</button>
+                            <button class="btn btn-preset" data-preset="outbreak">OUTBREAK</button>
+                            <button class="btn btn-preset" data-preset="extinction">EXTINCTION</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
         </main>
-
-        <aside class="dashboard">
-            <!-- Simulation Controls -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">⚡ SIMULATION</span>
-                    <span class="panel-toggle">▼</span>
-                </div>
-                <div class="panel-content">
-                    <div class="button-row">
-                        <button class="btn btn-primary" id="playPause">
-                            <span id="playPauseText">▶ START</span>
-                        </button>
-                        <button class="btn" id="step">⏭ STEP</button>
-                        <button class="btn btn-danger" id="reset">↻ RESET</button>
-                    </div>
-                    <div class="slider-row">
-                        <label>SPEED</label>
-                        <input type="range" id="speed" min="1" max="20" value="10">
-                        <span class="value" id="speedValue">10</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>GRID</label>
-                        <input type="range" id="gridSize" min="30" max="80" value="50">
-                        <span class="value" id="gridSizeValue">50</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Atmosphere -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">🌍 ATMOSPHERE</span>
-                    <span class="panel-toggle">▼</span>
-                </div>
-                <div class="panel-content">
-                    <div class="atmosphere-display">
-                        <div class="atmo-row">
-                            <span class="atmo-label">O₂</span>
-                            <div class="atmo-bar"><div class="atmo-fill o2" id="o2Bar"></div></div>
-                            <span class="atmo-value" id="o2Value">50%</span>
-                        </div>
-                        <div class="atmo-row">
-                            <span class="atmo-label">CO₂</span>
-                            <div class="atmo-bar"><div class="atmo-fill co2" id="co2Bar"></div></div>
-                            <span class="atmo-value" id="co2Value">50%</span>
-                        </div>
-                    </div>
-                    <div class="slider-row">
-                        <label>SUN</label>
-                        <input type="range" id="sunlight" min="1" max="10" value="5">
-                        <span class="value" id="sunlightValue">5</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>INIT O₂</label>
-                        <input type="range" id="initialO2" min="20" max="80" value="50">
-                        <span class="value" id="initialO2Value">50%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Population -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">📊 POPULATION</span>
-                    <span class="panel-toggle">▼</span>
-                </div>
-                <div class="panel-content">
-                    <div class="species-grid">
-                        <div class="species-item flora">
-                            <div class="species-icon"></div>
-                            <span class="species-name">Flora</span>
-                            <span class="species-count" id="plantCount">0</span>
-                        </div>
-                        <div class="species-item herbivore">
-                            <div class="species-icon"></div>
-                            <span class="species-name">Herb</span>
-                            <span class="species-count" id="herbivoreCount">0</span>
-                        </div>
-                        <div class="species-item carnivore">
-                            <div class="species-icon"></div>
-                            <span class="species-name">Carn</span>
-                            <span class="species-count" id="carnivoreCount">0</span>
-                        </div>
-                        <div class="species-item decomposer">
-                            <div class="species-icon"></div>
-                            <span class="species-name">Decom</span>
-                            <span class="species-count" id="decomposerCount">0</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Spawn Density -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">🌱 SPAWN</span>
-                    <span class="panel-toggle">▶</span>
-                </div>
-                <div class="panel-content collapsed">
-                    <div class="slider-row">
-                        <label class="label-flora">PLANT</label>
-                        <input type="range" id="plantDensity" min="0" max="30" value="10">
-                        <span class="value" id="plantDensityValue">10%</span>
-                    </div>
-                    <div class="slider-row">
-                        <label class="label-herbivore">HERB</label>
-                        <input type="range" id="herbivoreDensity" min="0" max="15" value="3">
-                        <span class="value" id="herbivoreDensityValue">3%</span>
-                    </div>
-                    <div class="slider-row">
-                        <label class="label-carnivore">CARN</label>
-                        <input type="range" id="carnivoreDensity" min="0" max="10" value="2">
-                        <span class="value" id="carnivoreDensityValue">2%</span>
-                    </div>
-                    <div class="slider-row">
-                        <label class="label-decomposer">DECOM</label>
-                        <input type="range" id="decomposerDensity" min="0" max="10" value="2">
-                        <span class="value" id="decomposerDensityValue">2%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Plant Settings -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">🌿 PLANTS</span>
-                    <span class="panel-toggle">▶</span>
-                </div>
-                <div class="panel-content collapsed">
-                    <div class="slider-row">
-                        <label>COST</label>
-                        <input type="range" id="plantEnergyCost" min="1" max="10" value="2" step="1">
-                        <span class="value" id="plantEnergyCostValue">0.2</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>REPRO</label>
-                        <input type="range" id="plantReproEnergy" min="40" max="100" value="70">
-                        <span class="value" id="plantReproEnergyValue">70</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>COOL</label>
-                        <input type="range" id="plantReproCooldown" min="1" max="10" value="2">
-                        <span class="value" id="plantReproCooldownValue">2</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>SPREAD</label>
-                        <input type="range" id="plantSpreadRadius" min="1" max="6" value="4">
-                        <span class="value" id="plantSpreadRadiusValue">4</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Herbivore Settings -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">🐰 HERBIVORE</span>
-                    <span class="panel-toggle">▶</span>
-                </div>
-                <div class="panel-content collapsed">
-                    <div class="slider-row">
-                        <label>COST</label>
-                        <input type="range" id="herbivoreEnergyCost" min="2" max="15" value="5" step="1">
-                        <span class="value" id="herbivoreEnergyCostValue">0.5</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>FOOD</label>
-                        <input type="range" id="herbivoreFoodEnergy" min="15" max="60" value="35">
-                        <span class="value" id="herbivoreFoodEnergyValue">35</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>REPRO</label>
-                        <input type="range" id="herbivoreReproEnergy" min="50" max="120" value="75">
-                        <span class="value" id="herbivoreReproEnergyValue">75</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>MOVE</label>
-                        <input type="range" id="herbivoreMoveChance" min="10" max="80" value="35">
-                        <span class="value" id="herbivoreMoveChanceValue">35%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Carnivore Settings -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">🦁 CARNIVORE</span>
-                    <span class="panel-toggle">▶</span>
-                </div>
-                <div class="panel-content collapsed">
-                    <div class="slider-row">
-                        <label>COST</label>
-                        <input type="range" id="carnivoreEnergyCost" min="3" max="20" value="7" step="1">
-                        <span class="value" id="carnivoreEnergyCostValue">0.7</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>HUNT</label>
-                        <input type="range" id="carnivoreHuntEnergy" min="30" max="100" value="70">
-                        <span class="value" id="carnivoreHuntEnergyValue">70</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>REPRO</label>
-                        <input type="range" id="carnivoreReproEnergy" min="60" max="150" value="90">
-                        <span class="value" id="carnivoreReproEnergyValue">90</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>MOVE</label>
-                        <input type="range" id="carnivoreMoveChance" min="20" max="80" value="45">
-                        <span class="value" id="carnivoreMoveChanceValue">45%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Colony Settings -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">🏘️ COLONY</span>
-                    <span class="panel-toggle">▶</span>
-                </div>
-                <div class="panel-content collapsed">
-                    <div class="slider-row">
-                        <label>RADIUS</label>
-                        <input type="range" id="colonyRadius" min="1" max="5" value="2">
-                        <span class="value" id="colonyRadiusValue">2</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>BONUS</label>
-                        <input type="range" id="colonyMaxBonus" min="1" max="10" value="5">
-                        <span class="value" id="colonyMaxBonusValue">0.5</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>BIAS</label>
-                        <input type="range" id="colonyMoveBias" min="0" max="100" value="70">
-                        <span class="value" id="colonyMoveBiasValue">70%</span>
-                    </div>
-                    <div class="slider-row">
-                        <label>MATE</label>
-                        <input type="range" id="mateRadius" min="1" max="5" value="2">
-                        <span class="value" id="mateRadiusValue">2</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Presets -->
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">
-                    <span class="panel-title">🎮 PRESETS</span>
-                    <span class="panel-toggle">▼</span>
-                </div>
-                <div class="panel-content">
-                    <div class="preset-grid">
-                        <button class="btn btn-preset active" data-preset="balanced">BALANCED</button>
-                        <button class="btn btn-preset" data-preset="jungle">JUNGLE</button>
-                        <button class="btn btn-preset" data-preset="predator">PREDATOR</button>
-                        <button class="btn btn-preset" data-preset="barren">BARREN</button>
-                        <button class="btn btn-preset" data-preset="overpop">OVERPOP</button>
-                        <button class="btn btn-preset" data-preset="sparse">SPARSE</button>
-                    </div>
-                </div>
-            </div>
-        </aside>
     </div>
 
     <script src="app.js"></script>
-    <script>
-        function togglePanel(header) {
-            const content = header.nextElementSibling;
-            const toggle = header.querySelector('.panel-toggle');
-            content.classList.toggle('collapsed');
-            toggle.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
-        }
-    </script>
 </body>
 </html>

@@ -1,3 +1,5 @@
+/* === VOXEL ECOSYSTEM - Complete Edition CSS === */
+
 :root {
     --bg-deep: #08080c;
     --bg-primary: #0c0c12;
@@ -8,6 +10,7 @@
     --accent-orange: #e87f38;
     --accent-orange-light: #f4a460;
     --accent-danger: #c41e3a;
+    --accent-success: #2d8f4e;
     
     --text-primary: #e5e5ea;
     --text-secondary: #8888a0;
@@ -20,6 +23,9 @@
     --species-herbivore: #1e5aab;
     --species-carnivore: #c91c1c;
     --species-decomposer: #d4a012;
+    --species-omnivore: #7c3aed;
+    --species-apex: #dc2626;
+    --species-parasite: #059669;
     
     --font-mono: 'Space Mono', monospace;
     --font-sans: 'IBM Plex Sans', sans-serif;
@@ -49,7 +55,7 @@ body {
     height: 100vh;
 }
 
-/* Header */
+/* === HEADER === */
 .header {
     padding: 8px 12px;
     background: var(--bg-primary);
@@ -70,26 +76,28 @@ body {
     font-family: var(--font-mono);
     font-size: 0.9rem;
     font-weight: 700;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     color: #000;
 }
 
 .header-stats {
     display: flex;
-    gap: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .header-stat {
     font-family: var(--font-mono);
     font-size: 0.7rem;
     color: rgba(0,0,0,0.7);
+    white-space: nowrap;
 }
 
 .header-stat strong {
     color: #000;
 }
 
-/* Main Content */
+/* === MAIN CONTENT === */
 .main-content {
     flex: 1;
     display: flex;
@@ -97,7 +105,41 @@ body {
     background: var(--bg-deep);
 }
 
-/* Canvas Container */
+/* === SIDEBARS === */
+.sidebar {
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--bg-primary);
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 2px;
+}
+
+.left-sidebar {
+    border-right: 1px solid var(--border-color);
+}
+
+.right-sidebar {
+    border-left: 1px solid var(--border-color);
+}
+
+/* === CANVAS === */
 .canvas-container {
     flex: 1;
     position: relative;
@@ -106,53 +148,27 @@ body {
     justify-content: center;
     overflow: hidden;
     background: var(--bg-deep);
+    min-width: 300px;
 }
 
 #world {
     display: block;
+    cursor: crosshair;
 }
 
-/* Dashboard - Bottom Layout */
-.dashboard {
-    display: flex;
-    gap: 6px;
-    padding: 8px;
-    background: var(--bg-primary);
-    border-top: 1px solid var(--border-color);
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-shrink: 0;
-}
-
-.dashboard::-webkit-scrollbar {
-    height: 4px;
-}
-
-.dashboard::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-}
-
-.dashboard::-webkit-scrollbar-thumb {
-    background: var(--border-light);
-    border-radius: 2px;
-}
-
-/* Panels */
+/* === PANELS === */
 .panel {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     overflow: hidden;
-    min-width: 160px;
-    max-width: 200px;
-    flex-shrink: 0;
 }
 
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 10px;
+    padding: 8px 10px;
     background: var(--bg-tertiary);
     cursor: pointer;
     user-select: none;
@@ -165,7 +181,7 @@ body {
 
 .panel-title {
     font-family: var(--font-mono);
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -178,40 +194,29 @@ body {
 }
 
 .panel-content {
-    padding: 8px;
+    padding: 10px;
     transition: all 0.3s ease;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.panel-content::-webkit-scrollbar {
-    width: 3px;
-}
-
-.panel-content::-webkit-scrollbar-thumb {
-    background: var(--border-light);
-    border-radius: 2px;
 }
 
 .panel-content.collapsed {
     display: none;
 }
 
-/* Buttons */
+/* === BUTTONS === */
 .button-row {
     display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
+    gap: 6px;
+    margin-bottom: 10px;
 }
 
 .btn {
     flex: 1;
-    padding: 6px 6px;
+    padding: 8px 8px;
     border: 1px solid var(--border-color);
-    border-radius: 3px;
+    border-radius: 4px;
     background: var(--bg-tertiary);
     font-family: var(--font-mono);
-    font-size: 0.5rem;
+    font-size: 0.55rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--text-primary);
@@ -251,12 +256,12 @@ body {
     border-color: var(--accent-danger);
 }
 
-/* Sliders */
+/* === SLIDERS === */
 .slider-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
 .slider-row:last-child {
@@ -265,11 +270,11 @@ body {
 
 .slider-row label {
     font-family: var(--font-mono);
-    font-size: 0.5rem;
+    font-size: 0.55rem;
     font-weight: 600;
     letter-spacing: 0.02em;
     color: var(--text-secondary);
-    min-width: 40px;
+    min-width: 45px;
     text-transform: uppercase;
 }
 
@@ -277,23 +282,25 @@ body {
 .label-herbivore { color: var(--species-herbivore); }
 .label-carnivore { color: var(--species-carnivore); }
 .label-decomposer { color: var(--species-decomposer); }
+.label-omnivore { color: var(--species-omnivore); }
+.label-apex { color: var(--species-apex); }
+.label-parasite { color: var(--species-parasite); }
 
 .slider-row input[type="range"] {
     flex: 1;
-    height: 3px;
+    height: 4px;
     -webkit-appearance: none;
     appearance: none;
     background: var(--border-color);
     border-radius: 2px;
     outline: none;
-    min-width: 50px;
 }
 
 .slider-row input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     background: var(--accent-orange);
     border-radius: 2px;
     cursor: pointer;
@@ -301,12 +308,12 @@ body {
 }
 
 .slider-row input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.1);
+    transform: scale(1.15);
 }
 
 .slider-row input[type="range"]::-moz-range-thumb {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     background: var(--accent-orange);
     border-radius: 2px;
     cursor: pointer;
@@ -315,36 +322,105 @@ body {
 
 .slider-row .value {
     font-family: var(--font-mono);
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     font-weight: 700;
     color: var(--accent-orange);
-    min-width: 26px;
+    min-width: 32px;
     text-align: right;
 }
 
-/* Atmosphere */
-.atmosphere-display {
+/* === TOOLS === */
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.tool-btn {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-tertiary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+}
+
+.tool-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-light);
+}
+
+.tool-btn.active {
+    background: var(--accent-orange);
+    border-color: var(--accent-orange);
+}
+
+.spawn-types, .terrain-types {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.mini-label {
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+}
+
+.spawn-grid, .terrain-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
     margin-bottom: 8px;
+}
+
+.spawn-type-btn, .terrain-btn {
+    padding: 8px 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background: var(--bg-tertiary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.spawn-type-btn:hover, .terrain-btn:hover {
+    background: var(--bg-hover);
+}
+
+.spawn-type-btn.active, .terrain-btn.active {
+    background: var(--accent-orange);
+    border-color: var(--accent-orange);
+}
+
+/* === ATMOSPHERE === */
+.atmosphere-display {
+    margin-bottom: 10px;
 }
 
 .atmo-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 4px;
+    gap: 8px;
+    margin-bottom: 6px;
 }
 
 .atmo-label {
     font-family: var(--font-mono);
-    font-size: 0.5rem;
+    font-size: 0.55rem;
     font-weight: 700;
     color: var(--text-secondary);
-    min-width: 22px;
+    min-width: 24px;
 }
 
 .atmo-bar {
     flex: 1;
-    height: 8px;
+    height: 10px;
     background: var(--border-color);
     border-radius: 2px;
     overflow: hidden;
@@ -358,92 +434,359 @@ body {
 
 .atmo-fill.o2 {
     background: linear-gradient(90deg, #1e5aab, #3b82f6);
-    box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
 
 .atmo-fill.co2 {
     background: linear-gradient(90deg, #991b1b, #c91c1c);
-    box-shadow: 0 0 6px rgba(201, 28, 60, 0.4);
+    box-shadow: 0 0 8px rgba(201, 28, 60, 0.5);
 }
 
 .atmo-value {
     font-family: var(--font-mono);
-    font-size: 0.5rem;
+    font-size: 0.55rem;
     font-weight: 700;
     color: var(--text-primary);
-    min-width: 28px;
+    min-width: 32px;
     text-align: right;
 }
 
-/* Species Grid */
-.species-grid {
+/* === HEATMAPS === */
+.heatmap-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.heatmap-btn {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background: var(--bg-tertiary);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.heatmap-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.heatmap-btn.active {
+    background: var(--accent-orange);
+    border-color: var(--accent-orange);
+    color: #000;
+}
+
+/* === DISASTERS === */
+.disaster-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.disaster-btn {
+    padding: 8px;
+    font-size: 0.55rem;
+}
+
+/* === SPECIES LIST === */
+.species-list {
+    display: flex;
+    flex-direction: column;
     gap: 4px;
+    margin-bottom: 10px;
 }
 
 .species-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 6px;
+    gap: 8px;
+    padding: 6px 8px;
     background: var(--bg-tertiary);
-    border-radius: 3px;
-    border-left: 2px solid transparent;
+    border-radius: 4px;
+    border-left: 3px solid transparent;
 }
 
 .species-item.flora { border-left-color: var(--species-flora); }
 .species-item.herbivore { border-left-color: var(--species-herbivore); }
 .species-item.carnivore { border-left-color: var(--species-carnivore); }
 .species-item.decomposer { border-left-color: var(--species-decomposer); }
+.species-item.omnivore { border-left-color: var(--species-omnivore); }
+.species-item.apex { border-left-color: var(--species-apex); }
+.species-item.parasite { border-left-color: var(--species-parasite); }
 
 .species-icon {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 2px;
 }
 
 .species-item.flora .species-icon { 
     background: var(--species-flora);
-    box-shadow: 0 0 4px var(--species-flora);
+    box-shadow: 0 0 6px var(--species-flora);
 }
 .species-item.herbivore .species-icon { 
     background: var(--species-herbivore);
-    box-shadow: 0 0 4px var(--species-herbivore);
+    box-shadow: 0 0 6px var(--species-herbivore);
 }
 .species-item.carnivore .species-icon { 
     background: var(--species-carnivore);
-    box-shadow: 0 0 4px var(--species-carnivore);
+    box-shadow: 0 0 6px var(--species-carnivore);
 }
 .species-item.decomposer .species-icon { 
     background: var(--species-decomposer);
-    box-shadow: 0 0 4px var(--species-decomposer);
+    box-shadow: 0 0 6px var(--species-decomposer);
+}
+.species-item.omnivore .species-icon { 
+    background: var(--species-omnivore);
+    box-shadow: 0 0 6px var(--species-omnivore);
+}
+.species-item.apex .species-icon { 
+    background: var(--species-apex);
+    box-shadow: 0 0 6px var(--species-apex);
+}
+.species-item.parasite .species-icon { 
+    background: var(--species-parasite);
+    box-shadow: 0 0 6px var(--species-parasite);
 }
 
 .species-name {
     flex: 1;
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     font-weight: 500;
     color: var(--text-secondary);
 }
 
 .species-count {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 700;
     color: var(--text-primary);
 }
 
-/* Presets */
+.stats-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.6rem;
+}
+
+.stats-row span:first-child {
+    color: var(--text-secondary);
+}
+
+.stats-row span:last-child {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent-orange);
+}
+
+/* === GRAPH === */
+.graph-container {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+#populationGraph {
+    display: block;
+    width: 100%;
+}
+
+.graph-legend {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.7rem;
+}
+
+.legend-item.flora { color: var(--species-flora); }
+.legend-item.herbivore { color: var(--species-herbivore); }
+.legend-item.carnivore { color: var(--species-carnivore); }
+.legend-item.omnivore { color: var(--species-omnivore); }
+.legend-item.apex { color: var(--species-apex); }
+
+/* === INSPECTOR === */
+#entityInspector {
+    font-size: 0.6rem;
+}
+
+.inspector-empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+.inspector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.inspector-type {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.inspector-type.plant { background: var(--species-flora); color: #fff; }
+.inspector-type.herbivore { background: var(--species-herbivore); color: #fff; }
+.inspector-type.carnivore { background: var(--species-carnivore); color: #fff; }
+.inspector-type.decomposer { background: var(--species-decomposer); color: #000; }
+.inspector-type.omnivore { background: var(--species-omnivore); color: #fff; }
+.inspector-type.apex_predator { background: var(--species-apex); color: #fff; }
+.inspector-type.parasite { background: var(--species-parasite); color: #fff; }
+.inspector-type.dead_matter { background: #4a4a4a; color: #fff; }
+
+.inspector-id {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    font-size: 0.55rem;
+}
+
+.inspector-stats {
+    margin-bottom: 10px;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.55rem;
+}
+
+.stat-row > span:first-child {
+    min-width: 50px;
+    color: var(--text-secondary);
+}
+
+.stat-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.stat-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.2s;
+}
+
+.stat-fill.energy {
+    background: linear-gradient(90deg, var(--accent-orange), var(--accent-orange-light));
+}
+
+.stat-fill.age {
+    background: linear-gradient(90deg, #6b7280, #9ca3af);
+}
+
+.stat-row.infected {
+    color: #22c55e;
+    font-weight: 700;
+}
+
+.stage-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.stage-badge.juvenile {
+    background: #3b82f6;
+    color: #fff;
+}
+
+.stage-badge.adult {
+    background: #22c55e;
+    color: #fff;
+}
+
+.stage-badge.elder {
+    background: #6b7280;
+    color: #fff;
+}
+
+.inspector-genetics {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.genetics-title {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.genetics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+}
+
+.gene {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.5rem;
+}
+
+.gene span:first-child {
+    color: var(--text-muted);
+}
+
+.gene span:last-child {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+.fitness {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--accent-orange);
+}
+
+.inspector-stats-extra {
+    display: flex;
+    gap: 12px;
+    font-size: 0.5rem;
+    color: var(--text-muted);
+}
+
+/* === PRESETS === */
 .preset-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
 }
 
 .btn-preset {
-    padding: 5px 4px;
-    font-size: 0.45rem;
+    padding: 8px 6px;
+    font-size: 0.5rem;
 }
 
 .btn-preset.active {
@@ -452,25 +795,39 @@ body {
     color: #000;
 }
 
-/* Footer removed - dashboard is now at bottom */
-
-/* Responsive */
+/* === RESPONSIVE === */
 @media (max-width: 1200px) {
-    .panel {
-        min-width: 140px;
+    .sidebar {
+        width: 200px;
     }
 }
 
-@media (max-width: 900px) {
-    .dashboard {
+@media (max-width: 1000px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        max-height: 200px;
+        flex-direction: row;
         flex-wrap: wrap;
-        max-height: 50vh;
-        overflow-y: auto;
+        overflow-x: auto;
+    }
+    
+    .left-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .right-sidebar {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
     }
     
     .panel {
-        min-width: 130px;
-        flex: 1 1 130px;
+        min-width: 180px;
+        flex: 1;
     }
 }
 
@@ -479,13 +836,13 @@ body {
         display: none;
     }
     
-    .panel {
-        min-width: 100%;
-        max-width: 100%;
+    .sidebar {
+        flex-direction: column;
+        max-height: 35vh;
     }
     
-    .dashboard {
-        flex-direction: column;
-        max-height: 40vh;
+    .panel {
+        min-width: 100%;
     }
 }
+
